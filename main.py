@@ -1,48 +1,91 @@
 import sys
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                            QPushButton, QFormLayout, QLineEdit, QLabel)
+                            QPushButton, QFormLayout, QLineEdit, QLabel,
+                            QSlider, QHBoxLayout, QMessageBox)
 from PyQt5.QtCore import Qt
 from animation import SphereWidget
+from model import PhysicsModel
 
 class AlgorithmWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("3D Sphere Visualizer")
-        self.setMinimumSize(800, 600)
+        self.setWindowTitle("Motorcycle on Sphere Physics")
+        self.setMinimumSize(1000, 800)
+        
+        self.physics_model = PhysicsModel()
+        self.sphere_radius = 1.0
         
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
         
-        # 3D виджет из отдельного файла
         self.visualization = SphereWidget()
+        self.visualization.set_physics_parameters(self.sphere_radius)
         layout.addWidget(self.visualization, stretch=1)
         
-        # Панель параметров
         self.parameters_widget = QWidget()
         parameters_layout = QFormLayout(self.parameters_widget)
-        self.create_parameters(parameters_layout)
+        
+        self.mass_input = QLineEdit("1.0")
+        parameters_layout.addRow(QLabel("Масса (кг):"), self.mass_input)
+        
+        self.velocity_input = QLineEdit("3.13")
+        parameters_layout.addRow(QLabel("Скорость (м/с):"), self.velocity_input)
+        
+        self.time_input = QLineEdit("5")
+        parameters_layout.addRow(QLabel("Время симуляции (сек):"), self.time_input)
+        
         layout.addWidget(self.parameters_widget)
         
-        # Кнопка расчета
-        self.calculate_btn = QPushButton("Рассчитать")
-        self.calculate_btn.clicked.connect(self.calculate)
-        layout.addWidget(self.calculate_btn, alignment=Qt.AlignRight)
-    
-    def create_parameters(self, layout):
-        self.radius_input = QLineEdit("1.0")
-        layout.addRow(QLabel("Радиус:"), self.radius_input)
+        self.timeline = QSlider(Qt.Horizontal)
+        self.timeline.setRange(0, 100)
+        self.timeline.valueChanged.connect(self.update_frame)
+        layout.addWidget(self.timeline)
         
-        self.segments_input = QLineEdit("32")
-        layout.addRow(QLabel("Сегменты:"), self.segments_input)
-    
-    def calculate(self):
+        control_widget = QWidget()
+        control_layout = QHBoxLayout(control_widget)
+        
+        self.calculate_btn = QPushButton("Рассчитать траекторию")
+        self.calculate_btn.clicked.connect(self.calculate_trajectory)
+        
+        self.info_btn = QPushButton("Минимальная скорость")
+        self.info_btn.clicked.connect(self.show_min_speed)
+        
+        control_layout.addWidget(self.calculate_btn)
+        control_layout.addWidget(self.info_btn)
+        layout.addWidget(control_widget)
+
+    def calculate_trajectory(self):
         try:
-            radius = float(self.radius_input.text())
-            segments = int(self.segments_input.text())
-            self.visualization.set_sphere_parameters(radius, segments)
+            mass = float(self.mass_input.text())
+            velocity = float(self.velocity_input.text())
+            simulation_time = float(self.time_input.text())
+            
+            if velocity <= 0 or mass <= 0 or simulation_time <= 0:
+                raise ValueError
+                
+            trajectory = self.physics_model.calculate_trajectory(mass, velocity, simulation_time)
+            self.visualization.set_trajectory(trajectory)
+            self.timeline.setRange(0, len(trajectory)-1)
+            
+            v_min = self.physics_model.calculate_min_speed()
+            if velocity < v_min:
+                QMessageBox.warning(self, "Предупреждение", 
+                    f"Скорость ниже минимальной ({v_min:.2f} м/с)!")
+            
         except ValueError:
-            print("Ошибка ввода параметров")
+            QMessageBox.critical(self, "Ошибка", "Некорректные входные параметры!")
+
+    def show_min_speed(self):
+        v_min = self.physics_model.calculate_min_speed()
+        QMessageBox.information(self, "Минимальная скорость",
+                               f"Минимальная скорость для радиуса {self.sphere_radius} м:\n"
+                               f"{v_min:.2f} м/с")
+
+    def update_frame(self, value):
+        max_frame = self.timeline.maximum()
+        current_frame = max_frame - value  # Инвертируем значение ползунка
+        self.visualization.set_current_frame(current_frame)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

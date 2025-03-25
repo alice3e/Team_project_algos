@@ -10,13 +10,21 @@ class SphereWidget(QOpenGLWidget):
         super().__init__(parent)
         self.rotation = QQuaternion()
         self.last_pos = QVector3D()
-        self.radius = 1.0
-        self.segments = 32
-        self.rotation_speed = 0.7
+        self.sphere_radius = 1.0
+        self.rotation_speed = 1.0
+        self.trajectory = []
+        self.current_frame = 0
 
-    def set_sphere_parameters(self, radius, segments):
-        self.radius = radius
-        self.segments = segments
+    def set_physics_parameters(self, sphere_radius):
+        self.sphere_radius = sphere_radius
+        self.update()
+
+    def set_trajectory(self, trajectory):
+        self.trajectory = trajectory
+        self.update()
+
+    def set_current_frame(self, frame):
+        self.current_frame = frame
         self.update()
 
     def initializeGL(self):
@@ -32,21 +40,39 @@ class SphereWidget(QOpenGLWidget):
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         
-        # Настройка камеры
         gluLookAt(3, 3, 3, 0, 0, 0, 0, 1, 0)
         
-        # Применение вращения
         rot_matrix = QMatrix4x4()
         rot_matrix.rotate(self.rotation)
         glMultMatrixf(rot_matrix.data())
         
-        # Отрисовка wireframe сферы
-        glColor4f(0.0, 0.5, 1.0, 0.5)  # Прозрачный голубой цвет
+        # Отрисовка сферы
+        glColor4f(0.0, 0.5, 1.0, 0.3)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
         quadric = gluNewQuadric()
         gluQuadricDrawStyle(quadric, GLU_LINE)
-        gluSphere(quadric, self.radius, self.segments, self.segments)
+        gluSphere(quadric, self.sphere_radius, 32, 32)
         gluDeleteQuadric(quadric)
+
+        # Отрисовка траектории и точки
+        if self.trajectory:
+            # Траектория
+            glColor3f(1.0, 0.0, 0.0)
+            glBegin(GL_LINE_STRIP)
+            for point in self.trajectory:
+                glVertex3f(*point)
+            glEnd()
+            
+            # Материальная точка
+            if self.current_frame < len(self.trajectory):
+                glColor3f(1.0, 0.0, 0.0)
+                glPushMatrix()
+                pos = self.trajectory[self.current_frame]
+                glTranslatef(*pos)
+                quadric = gluNewQuadric()
+                gluSphere(quadric, 0.05, 16, 16)
+                gluDeleteQuadric(quadric)
+                glPopMatrix()
 
     def resizeGL(self, w, h):
         glViewport(0, 0, w, h)
@@ -64,11 +90,9 @@ class SphereWidget(QOpenGLWidget):
             diff = new_pos - self.last_pos
             self.last_pos = new_pos
 
-            # Рассчитываем углы вращения
             rot_x = diff.y() * self.rotation_speed
             rot_y = diff.x() * self.rotation_speed
             
-            # Создаем кватернионы вращения
             euler_rot = QQuaternion.fromEulerAngles(rot_x, rot_y, 0)
             self.rotation = euler_rot * self.rotation
             self.update()
