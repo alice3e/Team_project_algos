@@ -9,83 +9,91 @@ from model import PhysicsModel
 class AlgorithmWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Motorcycle on Sphere Physics")
+        self.setWindowTitle("Sphere Motion Simulator")
         self.setMinimumSize(1000, 800)
         
-        self.physics_model = PhysicsModel()
-        self.sphere_radius = 1.0
+        self.physics_model = None
+        self.trajectory = []
         
+        # Инициализация интерфейса
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
         
+        # 3D визуализация
         self.visualization = SphereWidget()
-        self.visualization.set_physics_parameters(self.sphere_radius)
         layout.addWidget(self.visualization, stretch=1)
         
-        self.parameters_widget = QWidget()
-        parameters_layout = QFormLayout(self.parameters_widget)
+        # Панель параметров
+        params_widget = QWidget()
+        params_layout = QFormLayout(params_widget)
         
+        self.radius_input = QLineEdit("1.0")  # Поле для радиуса
+        params_layout.addRow(QLabel("Радиус сферы (м):"), self.radius_input)
+        
+        self.velocity_input = QLineEdit("5.0")  # Переименовано в ускорение
+        params_layout.addRow(QLabel("Ускорение (м/с²):"), self.velocity_input)
+        
+        self.angle_input = QLineEdit("0.0")
+        params_layout.addRow(QLabel("Угол движения (°):"), self.angle_input)
+        
+        self.time_input = QLineEdit("10.0")
+        params_layout.addRow(QLabel("Время симуляции (сек):"), self.time_input)
+        
+        # Новое поле для массы точки
         self.mass_input = QLineEdit("1.0")
-        parameters_layout.addRow(QLabel("Масса (кг):"), self.mass_input)
+        params_layout.addRow(QLabel("Масса точки (кг):"), self.mass_input)
         
-        self.velocity_input = QLineEdit("3.13")
-        parameters_layout.addRow(QLabel("Скорость (м/с):"), self.velocity_input)
+        layout.addWidget(params_widget)
         
-        self.time_input = QLineEdit("5")
-        parameters_layout.addRow(QLabel("Время симуляции (сек):"), self.time_input)
-        
-        layout.addWidget(self.parameters_widget)
-        
+        # Таймлайн
         self.timeline = QSlider(Qt.Horizontal)
         self.timeline.setRange(0, 100)
         self.timeline.valueChanged.connect(self.update_frame)
         layout.addWidget(self.timeline)
         
+        # Кнопки управления
         control_widget = QWidget()
         control_layout = QHBoxLayout(control_widget)
         
-        self.calculate_btn = QPushButton("Рассчитать траекторию")
-        self.calculate_btn.clicked.connect(self.calculate_trajectory)
-        
-        self.info_btn = QPushButton("Минимальная скорость")
-        self.info_btn.clicked.connect(self.show_min_speed)
-        
+        self.calculate_btn = QPushButton("Рассчитать")
+        self.calculate_btn.clicked.connect(self.calculate)
         control_layout.addWidget(self.calculate_btn)
-        control_layout.addWidget(self.info_btn)
         layout.addWidget(control_widget)
-
-    def calculate_trajectory(self):
+        
+    def calculate(self):
         try:
+            radius = float(self.radius_input.text())
+            acceleration = float(self.velocity_input.text())  # Переименовано в ускорение
+            angle = float(self.angle_input.text())
+            sim_time = float(self.time_input.text())
             mass = float(self.mass_input.text())
-            velocity = float(self.velocity_input.text())
-            simulation_time = float(self.time_input.text())
             
-            if velocity <= 0 or mass <= 0 or simulation_time <= 0:
-                raise ValueError
+            if radius <= 0 or acceleration <= 0 or sim_time <= 0 or mass <= 0:
+                raise ValueError("Параметры должны быть положительными числами")
                 
-            trajectory = self.physics_model.calculate_trajectory(mass, velocity, simulation_time)
-            self.visualization.set_trajectory(trajectory)
-            self.timeline.setRange(0, len(trajectory)-1)
+            self.physics_model = PhysicsModel(radius)
+            self.visualization.set_sphere_radius(radius)
             
-            v_min = self.physics_model.calculate_min_speed()
-            if velocity < v_min:
-                QMessageBox.warning(self, "Предупреждение", 
-                    f"Скорость ниже минимальной ({v_min:.2f} м/с)!")
+            # Расчет траектории с учетом ускорения и массы
+            self.trajectory = self.physics_model.calculate_trajectory(acceleration, angle, sim_time, mass)
+                        
+            # Проверка на пустую траекторию
+            if not self.trajectory:
+                QMessageBox.warning(self, "Предупреждение", "Точка сразу оторвалась от поверхности!")
+                return
+                
+            # Обновление визуализации
+            self.visualization.set_trajectory(self.trajectory)
+            self.timeline.setRange(0, len(self.trajectory)-1)
+            self.timeline.setValue(0)
             
-        except ValueError:
-            QMessageBox.critical(self, "Ошибка", "Некорректные входные параметры!")
-
-    def show_min_speed(self):
-        v_min = self.physics_model.calculate_min_speed()
-        QMessageBox.information(self, "Минимальная скорость",
-                               f"Минимальная скорость для радиуса {self.sphere_radius} м:\n"
-                               f"{v_min:.2f} м/с")
+        except ValueError as e:
+            QMessageBox.critical(self, "Ошибка", str(e))
 
     def update_frame(self, value):
-        max_frame = self.timeline.maximum()
-        current_frame = max_frame - value  # Инвертируем значение ползунка
-        self.visualization.set_current_frame(current_frame)
+        # Прямое соответствие: влево - начало, вправо - конец
+        self.visualization.set_current_frame(value)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
