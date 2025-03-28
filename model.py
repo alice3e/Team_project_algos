@@ -7,6 +7,7 @@ class PhysicsModel:
     Calculates the trajectory of a point mass moving on the inner surface
     of a sphere. The path follows a prescribed Archimedean-like spiral,
     and the simulation stops if the normal force becomes negative (detachment).
+    Uses corrected Normal Force calculation.
     """
     def __init__(self, radius):
         """
@@ -28,6 +29,7 @@ class PhysicsModel:
             acceleration (float): Parameter related to the rate of spiraling (m/s^2).
                                   Interpreted as R * alpha_phi.
             k (float):            Parameter controlling the pitch of the spiral.
+                                  k=0 means purely horizontal motion at initial height.
             sim_time (float):     Total simulation time (seconds).
             mass (float):         Mass of the point (kg).
 
@@ -53,52 +55,59 @@ class PhysicsModel:
         else:
             alpha_phi = acceleration / self.radius # rad/s^2
 
-        # *** ИЗМЕНЕНИЕ ЗДЕСЬ ***
-        initial_theta_offset = 0.01 # Небольшой угол в радианах, чтобы начать чуть выше южного полюса
-        # ***********************
+        initial_theta_offset = 0.01 # Небольшой угол в радианах
+        # Для k=0 - это будет угол, определяющий высоту горизонтального движения
 
         print(f"Starting calculation: R={self.radius}m, acc_param={acceleration}, k={k}, time={sim_time}s, mass={mass}kg")
         print(f"Derived alpha_phi = {alpha_phi:.4f} rad/s^2")
-        print(f"Starting slightly above South Pole by {np.degrees(initial_theta_offset):.3f} degrees.")
+        print(f"Starting theta = {np.degrees(np.pi - initial_theta_offset):.3f} degrees (from Z-axis).")
 
+        if k == 0:
+            print("Warning: k=0 selected. Point will attempt purely horizontal motion.")
 
         for i in range(n_steps):
             t = i * dt
 
             # Kinematic path definition (Physics standard: Z-up, theta from Z-axis)
             phi = 0.5 * alpha_phi * t**2
-
-            # *** ИЗМЕНЕНИЕ ЗДЕСЬ ***
-            # Начинаем с theta = pi - initial_theta_offset и уменьшаем
+            # Начальная высота задается смещением, k определяет изменение высоты
             theta = np.pi - initial_theta_offset - 0.5 * k * alpha_phi * t**2
-            # ***********************
 
             # Clamp theta to physical range [0, pi]
             if theta < 0:
                 theta = 0
-            elif theta > np.pi: # Should not happen for k>=0 starting near pi
-                 theta = np.pi
+            elif theta > np.pi:
+                 theta = np.pi # Should not happen now
 
             # Derivatives needed for Normal Force calculation
             phi_dot = alpha_phi * t
-            # Производная от новой формулы theta не изменилась
-            theta_dot = -k * alpha_phi * t
+            theta_dot = -k * alpha_phi * t # Правильно равно 0 при k=0
 
             # Calculate Normal Force (N) required to maintain this kinematic path
+            # Используем ИСПРАВЛЕННУЮ формулу
             cos_theta = np.cos(theta)
             sin_theta = np.sin(theta)
-            N = mass * ( self.g * cos_theta - self.radius * (theta_dot**2 + (sin_theta * phi_dot)**2) )
+            term_gravity = -mass * self.g * cos_theta
+            term_centripetal = -mass * self.radius * (theta_dot**2 + (sin_theta * phi_dot)**2)
+            N = term_gravity + term_centripetal
 
-            # Check for detachment
-            # Разрешаем N < 0 только на самом первом шаге i=0 (t=0), если смещение мало
-            if N < 0 and i > 0:
-                print(f"Detachment predicted at t={t:.3f} s (step {i}). Normal force became negative: N = {N:.3f}")
-                if i < 5: # If detaches almost immediately despite offset
-                     # You might want to keep the few points generated or return empty
-                     # Keep points for now to see if it calculates *anything*
-                     # return []
-                     pass # Allow short trajectory display
-                break # Stop calculating further points
+            # Отладочный вывод сил для первых шагов
+            if i < 5 or i % 100 == 0 : # Вывод чаще в начале и реже потом
+                 print(f"t={t:.2f}s, theta={np.degrees(theta):.2f}deg, N={N:.3f} (Grav: {term_gravity:.3f}, Centr: {term_centripetal:.3f})")
+
+
+            # Check for detachment (N < 0 means sphere needs to pull inwards)
+            # N - это сила, которую сфера прикладывает наружу. Если она < 0, значит нужен "крюк".
+            if N < 0:
+                 # Разрешим очень маленькие отрицательные значения из-за погрешностей
+                 tolerance = -1e-6
+                 if N < tolerance:
+                    print(f"Detachment predicted at t={t:.3f} s (step {i}). Normal force became negative: N = {N:.3f}")
+                    # Возвращаем пустой список, только если отрыв происходит почти мгновенно
+                    if i < 5 and len(trajectory_points) == 0:
+                         print("Immediate detachment, returning empty trajectory.")
+                         return []
+                    break # Stop calculating further points
 
             # Convert spherical coordinates (Physics: Z-up) to Cartesian (Physics: Z-up)
             x_phys = self.radius * sin_theta * np.cos(phi)
@@ -117,9 +126,9 @@ class PhysicsModel:
                  print(f"Reached North Pole at t={t:.3f} s.")
                  break
 
-        if not trajectory_points and sim_time > 0: # Check if list is empty after loop
-             print("Warning: No trajectory points generated, likely immediate detachment despite offset.")
-             return [] # Ensure empty list is returned if needed by GUI
+        if not trajectory_points and sim_time > 0:
+             print("Warning: No trajectory points generated.")
+             return []
         elif trajectory_points:
              print(f"Calculation finished. Generated {len(trajectory_points)} points.")
 
