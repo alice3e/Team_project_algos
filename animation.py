@@ -1,3 +1,5 @@
+# --- START OF FILE animation.py ---
+
 from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtGui import QVector3D, QMatrix4x4, QQuaternion
 from PyQt5.QtCore import Qt, QPoint
@@ -26,8 +28,13 @@ class SphereWidget(QOpenGLWidget):
         self.update()
 
     def set_current_frame(self, frame):
-        self.current_frame = min(frame, len(self.trajectory)-1)
+        # Ограничиваем значение кадра допустимым диапазоном
+        if self.trajectory:
+            self.current_frame = max(0, min(frame, len(self.trajectory) - 1))
+        else:
+            self.current_frame = 0
         self.update()
+
 
     def initializeGL(self):
         glEnable(GL_DEPTH_TEST)
@@ -42,133 +49,209 @@ class SphereWidget(QOpenGLWidget):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
-        
+
         # Динамическое позиционирование камеры с учетом зума
         camera_distance = self.sphere_radius * 3.5 * self.zoom
         gluLookAt(camera_distance, camera_distance, camera_distance,
                   0, 0, 0,
-                  0, 1, 0)
-        
+                  0, 1, 0) # Y - up
+
         rot_matrix = QMatrix4x4()
         rot_matrix.rotate(self.rotation)
         glMultMatrixf(rot_matrix.data())
-        
-        # Устанавливаем режим отрисовки линий и прозрачность
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-        # Устанавливаем белый цвет с прозрачностью (альфа = 0.4)
-        glColor4f(1.0, 1.0, 1.0, 0.4)
 
-        # Рисуем меридианы (линии, проходящие от одного полюса к другому)
+        # --- Отрисовка Сферы ---
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+        glColor4f(1.0, 1.0, 1.0, 0.4) # Белый, полупрозрачный
+        glLineWidth(0.5)
+
         num_meridians = 32
         num_parallels = 32
-        glLineWidth(0.5)
+        # Меридианы
         for j in range(num_meridians):
             phi = j * 2 * np.pi / num_meridians
             glBegin(GL_LINE_STRIP)
             for i in range(num_parallels + 1):
-                theta = i * np.pi / num_parallels
+                theta = i * np.pi / num_parallels # От 0 (север) до pi (юг)
+                # Конвертация из сферических (физика, Z-up) в декартовы (анимация, Y-up)
                 x = self.sphere_radius * np.sin(theta) * np.cos(phi)
-                y = self.sphere_radius * np.cos(theta)
-                z = self.sphere_radius * np.sin(theta) * np.sin(phi)
-                glVertex3f(x, y, z)
+                z_phys = self.sphere_radius * np.cos(theta) # Z физический
+                y_anim = z_phys # Y анимации
+                z_anim = self.sphere_radius * np.sin(theta) * np.sin(phi) # Z анимации
+                glVertex3f(x, y_anim, z_anim)
             glEnd()
 
-        # Рисуем параллели (окружности с постоянным θ)
+        # Параллели
         for i in range(1, num_parallels):
             theta = i * np.pi / num_parallels
             glBegin(GL_LINE_LOOP)
             for j in range(num_meridians):
                 phi = j * 2 * np.pi / num_meridians
                 x = self.sphere_radius * np.sin(theta) * np.cos(phi)
-                y = self.sphere_radius * np.cos(theta)
-                z = self.sphere_radius * np.sin(theta) * np.sin(phi)
-                glVertex3f(x, y, z)
+                y_anim = self.sphere_radius * np.cos(theta)
+                z_anim = self.sphere_radius * np.sin(theta) * np.sin(phi)
+                glVertex3f(x, y_anim, z_anim)
             glEnd()
 
-        # Рисуем экватор (θ = π/2) более толстой красной линией
+        # Экватор (theta = pi/2)
         glLineWidth(1.5)
-        glColor4f(1.0, 0.0, 0.0, 0.8)
+        glColor4f(1.0, 0.0, 0.0, 0.8) # Красный
         glBegin(GL_LINE_LOOP)
         theta = np.pi / 2
         num_equator_points = 64
         for j in range(num_equator_points):
             phi = j * 2 * np.pi / num_equator_points
             x = self.sphere_radius * np.sin(theta) * np.cos(phi)
-            y = self.sphere_radius * np.cos(theta)
-            z = self.sphere_radius * np.sin(theta) * np.sin(phi)
-            glVertex3f(x, y, z)
+            y_anim = self.sphere_radius * np.cos(theta) # Должен быть 0
+            z_anim = self.sphere_radius * np.sin(theta) * np.sin(phi)
+            glVertex3f(x, y_anim, z_anim)
         glEnd()
         glLineWidth(1.0)
-        
-        # Отрисовка стрелки, указывающей на направление силы тяжести.
-        # Северный полюс сферы имеет координаты (0, sphere_radius, 0)
-        # Стрелка направлена вниз по оси Y.
-        arrow_length = self.sphere_radius * 0.3
-        glColor4f(0.0, 1.0, 0.0, 0.8)
-        
-        # Ствол стрелки
+
+        # --- Стрелка силы тяжести (вниз по Y) ---
+        arrow_length_gravity = self.sphere_radius * 0.3
+        glColor4f(0.0, 1.0, 0.0, 0.8) # Зеленый
+
+        # Начало стрелки может быть не на полюсе, а рядом с точкой для наглядности
+        # Но пока оставим от полюса для простоты
+        start_y = self.sphere_radius # Северный полюс Y
+        end_y = start_y - arrow_length_gravity
+
+        # Ствол
         glBegin(GL_LINES)
-        glVertex3f(0, self.sphere_radius, 0)
-        glVertex3f(0, self.sphere_radius - arrow_length, 0)
-        glEnd()
-        
-        # Голова стрелки (две линии, имитирующие наконечник)
-        head_size = arrow_length * 0.2
-        glBegin(GL_LINES)
-        glVertex3f(0, self.sphere_radius - arrow_length, 0)
-        glVertex3f(-head_size, self.sphere_radius - arrow_length + head_size, 0)
-        glEnd()
-        glBegin(GL_LINES)
-        glVertex3f(0, self.sphere_radius - arrow_length, 0)
-        glVertex3f(head_size, self.sphere_radius - arrow_length + head_size, 0)
+        glVertex3f(0, start_y, 0)
+        glVertex3f(0, end_y, 0)
         glEnd()
 
-        # Отрисовка траектории материальной точки
+        # Голова
+        head_size_gravity = arrow_length_gravity * 0.2
+        glBegin(GL_LINES)
+        glVertex3f(0, end_y, 0)
+        glVertex3f(-head_size_gravity, end_y + head_size_gravity, 0)
+        glEnd()
+        glBegin(GL_LINES)
+        glVertex3f(0, end_y, 0)
+        glVertex3f(head_size_gravity, end_y + head_size_gravity, 0)
+        glEnd()
+
+        # --- Отрисовка траектории и точки ---
         if self.trajectory:
-            glColor4f(1.0, 0.0, 0.0, 0.8)
+            # Траектория (пройденный путь)
+            glColor4f(1.0, 0.0, 0.0, 0.8) # Красный
             glBegin(GL_LINE_STRIP)
             for point in self.trajectory[:self.current_frame+1]:
                 glVertex3f(*point)
             glEnd()
-            
-            # Отрисовка самой точки
+
+            # Сама точка (в текущем кадре)
             if self.current_frame < len(self.trajectory):
+                current_pos = self.trajectory[self.current_frame]
                 glPushMatrix()
-                glTranslatef(*self.trajectory[self.current_frame])
+                glTranslatef(*current_pos)
                 quad = gluNewQuadric()
-                gluSphere(quad, 0.05, 16, 16)
+                # Возвращаем сплошной режим для точки
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+                glColor4f(1.0, 1.0, 0.0, 1.0) # Желтый, непрозрачный
+                gluSphere(quad, self.sphere_radius * 0.05, 16, 16) # Размер точки зависит от радиуса
                 gluDeleteQuadric(quad)
                 glPopMatrix()
 
+                # --- Отрисовка стрелки вектора скорости ---
+                # Проверяем, есть ли следующий кадр для расчета направления
+                if self.current_frame + 1 < len(self.trajectory):
+                    next_pos = self.trajectory[self.current_frame + 1]
+
+                    # Вектор направления скорости (не нормированный)
+                    vel_dir = (next_pos[0] - current_pos[0],
+                               next_pos[1] - current_pos[1],
+                               next_pos[2] - current_pos[2])
+
+                    # Нормализуем вектор
+                    mag = np.linalg.norm(vel_dir)
+                    if mag > 1e-6: # Избегаем деления на ноль, если точка стоит
+                        norm_vel_dir = (vel_dir[0] / mag, vel_dir[1] / mag, vel_dir[2] / mag)
+
+                        # Длина стрелки скорости
+                        arrow_length_vel = self.sphere_radius * 0.2 # Можно сделать зависимой от mag
+
+                        # Конечная точка стрелки
+                        arrow_end = (current_pos[0] + norm_vel_dir[0] * arrow_length_vel,
+                                     current_pos[1] + norm_vel_dir[1] * arrow_length_vel,
+                                     current_pos[2] + norm_vel_dir[2] * arrow_length_vel)
+
+                        # Рисуем ствол стрелки
+                        glColor4f(0.0, 0.5, 1.0, 0.9) # Синий
+                        glLineWidth(1.5)
+                        glBegin(GL_LINES)
+                        glVertex3f(*current_pos)
+                        glVertex3f(*arrow_end)
+                        glEnd()
+                        glLineWidth(1.0) # Возвращаем толщину по умолчанию
+
+                        # (Опционально) Можно добавить наконечник стрелки,
+                        # но это сложнее, требует расчета перпендикулярных векторов.
+                        # Пока оставим только ствол для простоты.
+
+                # Возвращаем режим отрисовки линий для следующих элементов
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+
+
         glFlush()
-        
+
     def resizeGL(self, w, h):
         glViewport(0, 0, w, h)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(45, w/h, 0.1, 100.0)
-        
+        if h == 0: h = 1
+        aspect_ratio = w / h
+        gluPerspective(45, aspect_ratio, 0.1, 100.0 * self.sphere_radius) # Увеличиваем far clip
+
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            self.last_pos = QVector3D(event.x(), event.y(), 0)
+            # Нормализуем координаты мыши для корректного расчета вращения
+            self.last_pos = QVector3D(event.x() / self.width(), event.y() / self.height(), 0)
+
 
     def mouseMoveEvent(self, event):
         if event.buttons() & Qt.LeftButton:
-            new_pos = QVector3D(event.x(), event.y(), 0)
+            # Нормализуем координаты мыши
+            new_pos = QVector3D(event.x() / self.width(), event.y() / self.height(), 0)
             diff = new_pos - self.last_pos
             self.last_pos = new_pos
-            
-            rot_x = diff.y() * self.rotation_speed
-            rot_y = diff.x() * self.rotation_speed
-            self.rotation = QQuaternion.fromEulerAngles(rot_x, rot_y, 0) * self.rotation
+
+            # Уменьшаем скорость вращения для более плавного управления
+            rotation_scale = 180.0 # Градусы поворота на полное перемещение мыши по экрану
+            rot_x = diff.y() * rotation_scale
+            rot_y = diff.x() * rotation_scale
+
+            # Применяем вращение: сначала вокруг Y (по горизонтали мыши), потом вокруг X (по вертикали мыши)
+            # Нужно вращать вокруг осей объекта, а не мировых - используем кватернионы
+            axis_x = QVector3D(1, 0, 0)
+            axis_y = QVector3D(0, 1, 0)
+
+            # Вращение вокруг оси Y, перпендикулярной экрану
+            rotation_y_quat = QQuaternion.fromAxisAndAngle(axis_y, rot_y)
+            # Вращение вокруг оси X, перпендикулярной экрану
+            rotation_x_quat = QQuaternion.fromAxisAndAngle(axis_x, rot_x)
+
+            # Комбинируем вращения: новое вращение применяется к текущему
+            # Порядок важен! rot_y * rot_x * self.rotation вращает сначала вокруг X, потом Y в локальной системе
+            self.rotation = rotation_y_quat * rotation_x_quat * self.rotation
+            # Нормализуем кватернион для стабильности
+            self.rotation.normalize()
+
             self.update()
+
 
     def wheelEvent(self, event):
         # Изменение зума при прокрутке колесика мыши
         delta = event.angleDelta().y()
-        # Корректируем коэффициент зума: при положительном значении - приближение, отрицательном - отдаление
-        if delta > 0:
-            self.zoom *= 0.9
-        else:
-            self.zoom *= 1.1
+        zoom_factor = 0.9 if delta > 0 else 1.1
+        self.zoom *= zoom_factor
+        # Ограничиваем зум, чтобы не улететь слишком далеко или близко
+        self.zoom = max(0.1, min(self.zoom, 5.0))
+        print(f"Zoom factor: {self.zoom:.2f}") # Отладочный вывод
         self.update()
+
+
+# --- END OF FILE animation.py ---
