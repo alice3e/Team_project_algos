@@ -34,8 +34,9 @@ class AlgorithmWindow(QMainWindow):
         self.velocity_input = QLineEdit("5.0")  # Переименовано в ускорение
         params_layout.addRow(QLabel("Ускорение (м/с²):"), self.velocity_input)
         
-        self.angle_input = QLineEdit("0.0")
-        params_layout.addRow(QLabel("Угол движения (°):"), self.angle_input)
+        # движение всегда осуществляется по Архимедовой спирали, где k — смещение точки M по лучу r при повороте на угол, равный одному радиану.
+        self.k_input = QLineEdit("0.0")
+        params_layout.addRow(QLabel("K:"), self.k_input)
         
         self.time_input = QLineEdit("10.0")
         params_layout.addRow(QLabel("Время симуляции (сек):"), self.time_input)
@@ -65,7 +66,7 @@ class AlgorithmWindow(QMainWindow):
         try:
             radius = float(self.radius_input.text())
             acceleration = float(self.velocity_input.text())  # Переименовано в ускорение
-            angle = float(self.angle_input.text())
+            k = float(self.k_input.text())
             sim_time = float(self.time_input.text())
             mass = float(self.mass_input.text())
             
@@ -76,7 +77,7 @@ class AlgorithmWindow(QMainWindow):
             self.visualization.set_sphere_radius(radius)
             
             # Расчет траектории с учетом ускорения и массы
-            self.trajectory = self.physics_model.calculate_trajectory(acceleration, angle, sim_time, mass)
+            self.trajectory = self.physics_model.calculate_trajectory(acceleration, k, sim_time, mass)
                         
             # Проверка на пустую траекторию
             if not self.trajectory:
