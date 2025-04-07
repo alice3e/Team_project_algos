@@ -97,7 +97,22 @@ class PhysicsModel:
                           # If still zero (at origin?), default maybe?
                           if np.linalg.norm(horizontal_dir_approx) < 1e-9:
                               horizontal_dir_approx = np.array([0.0, 0.0, 1.0]) # Default to Z direction? Or based on Vel?
+                    # Обновление направления высчитывания силы тяги
+                    if contact and drive_force_magnitude > 0:
+                        radial_dir = pos / (np.linalg.norm(pos) + 1e-9)  # Нормализованный радиус-вектор (+1e-9 чтобы избежать деления на 0)
+                        up_vector = np.array([0.0, 1.0, 0.0])  # Вертикаль (Y вверх)
 
+                        # Касательное направление (горизонтальное)
+                        tangent_dir = np.cross(radial_dir, up_vector)
+                        tangent_norm = np.linalg.norm(tangent_dir)
+
+                        if tangent_norm > 1e-6:  # Если не на полюсе
+                            tangent_dir /= tangent_norm
+                            force_drive = drive_force_magnitude * tangent_dir
+                        else:
+                            force_drive = np.zeros(3)  # На полюсе сила тяги = 0
+                    else:
+                        force_drive = np.zeros(3)
                     drive_dir = horizontal_dir_approx / (np.linalg.norm(horizontal_dir_approx) + 1e-9)
                     # Ensure drive force is tangential
                     drive_dir_tangent = drive_dir - np.dot(drive_dir, radial_dir) * radial_dir
@@ -108,7 +123,17 @@ class PhysicsModel:
 
             # If not in contact, only gravity acts (plus air resistance if added later)
             force_net = force_gravity + force_drive if contact else force_gravity
+            # Учет центробежной силы
+            if contact:
+                speed_sq = np.dot(vel, vel)
+                F_centrifugal = mass * speed_sq / self.radius
+                cos_theta = radial_dir[1]  # cos(угла между радиусом и вертикалью)
+                F_gravity_normal = mass * self.g * cos_theta
 
+                # Проверка условия отрыва
+                if F_centrifugal >= F_gravity_normal:
+                    contact = False
+                    print(f"Отрыв при v={np.sqrt(speed_sq):.2f} м/с, угол={np.arccos(cos_theta):.2f} рад")
             # 2. Calculate Acceleration
             acc = force_net / mass
 
@@ -186,6 +211,8 @@ class PhysicsModel:
 
             # Store the validated/corrected state for this step
             trajectory_points.append(tuple(pos))
+            if hasattr(self, 'visualization'):
+                self.visualization.set_force_direction(force_drive)
             velocity_points.append(tuple(vel))
 
         print(f"Dynamic calculation finished. Generated {len(trajectory_points)} points.")
