@@ -18,6 +18,9 @@ class SphereWidget(QOpenGLWidget):
         self.sphere_radius = 1.0  # Начальное значение радиуса
         self.zoom = 1.0  # Коэффициент приближения камеры
 
+    def set_force_direction(self, force_vec):
+        self.force_direction = force_vec
+
     def set_sphere_radius(self, radius):
         self.sphere_radius = radius
         self.update()
@@ -195,6 +198,27 @@ class SphereWidget(QOpenGLWidget):
                 # Возвращаем режим отрисовки линий для следующих элементов
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
+            if hasattr(self, 'force_direction') and self.force_direction is not None:
+                force_dir = np.array(self.force_direction)
+                force_mag = np.linalg.norm(force_dir)
+                if force_mag > 1e-6:
+                    force_dir /= force_mag
+                    glColor4f(1.0, 0.5, 0.0, 1.0)  # Оранжевый
+                    glLineWidth(2.0)
+                    glBegin(GL_LINES)
+                    glVertex3f(*current_pos)
+                    glVertex3f(current_pos[0] + force_dir[0]*0.5,
+                            current_pos[1] + force_dir[1]*0.5,
+                            current_pos[2] + force_dir[2]*0.5)
+                    glEnd()
+
+            if self.trajectory and self.current_frame < len(self.trajectory):
+                pos = self.trajectory[self.current_frame]
+                glColor3f(0.0, 1.0, 0.0)  # Зеленый
+                glBegin(GL_LINES)
+                glVertex3f(*pos)
+                glVertex3f(pos[0], pos[1] - 0.5, pos[2])  # Вектор gravity
+                glEnd()
 
         glFlush()
 

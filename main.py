@@ -91,6 +91,10 @@ class AlgorithmWindow(QMainWindow):
         self.info_pos_label = QLabel("Позиция (x,y,z): -")
         self.info_vel_label = QLabel("Скорость (vx,vy,vz): -")
         self.info_speed_label = QLabel("Скорость (скаляр): -")
+
+        self.info_critical_label = QLabel("Критическая скорость: -")
+        info_layout.addRow(self.info_critical_label)
+
         info_layout.addRow(self.info_time_label)
         info_layout.addRow(self.info_pos_label)
         info_layout.addRow(self.info_vel_label)
@@ -143,6 +147,11 @@ class AlgorithmWindow(QMainWindow):
             if drive_force < 0: drive_force = 0; self.drive_force_input.setText("0.0")
             pos_norm_sq = sum(p**2 for p in initial_pos)
             if pos_norm_sq > radius**2 + 1e-3: raise ValueError("Начальная позиция вне сферы.")
+
+            # Критическая скорость
+            critical_speed = np.sqrt(9.81 * radius)  # g = 9.81
+            self.info_critical_label.setText(f"Критическая скорость: {critical_speed:.2f} м/с")
+
 
             # Запуск модели
             self.physics_model = PhysicsModel(radius)

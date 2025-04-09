@@ -83,31 +83,40 @@ class PhysicsModel:
 
             # --- Apply Drive Force ONLY if contact is true ---
             if contact and drive_force_magnitude > 0:
-                pos_norm = np.linalg.norm(pos)
-                if pos_norm > 1e-9: # Avoid division by zero at origin
-                    radial_dir = pos / pos_norm
-                    up_vector = np.array([0.0, 1.0, 0.0])
-                    # Use cross product Z x R = horizontal approx. (if R is not along Z)
-                    z_axis = np.array([0.0, 0.0, 1.0])
-                    horizontal_dir_approx = np.cross(z_axis, radial_dir)
-                    if np.linalg.norm(horizontal_dir_approx) < 1e-6: # Handle if R is along Z axis (poles)
-                          # Try X x R
-                          x_axis = np.array([1.0, 0.0, 0.0])
-                          horizontal_dir_approx = np.cross(x_axis, radial_dir)
-                          # If still zero (at origin?), default maybe?
-                          if np.linalg.norm(horizontal_dir_approx) < 1e-9:
-                              horizontal_dir_approx = np.array([0.0, 0.0, 1.0]) # Default to Z direction? Or based on Vel?
 
-                    drive_dir = horizontal_dir_approx / (np.linalg.norm(horizontal_dir_approx) + 1e-9)
-                    # Ensure drive force is tangential
-                    drive_dir_tangent = drive_dir - np.dot(drive_dir, radial_dir) * radial_dir
-                    if np.linalg.norm(drive_dir_tangent) > 1e-9:
-                        drive_dir_tangent /= np.linalg.norm(drive_dir_tangent)
-                        force_drive = drive_force_magnitude * drive_dir_tangent
+                radial_dir = pos / (np.linalg.norm(pos) + 1e-9)
+                
+                # Направление "вперед" для мотоциклиста (касательное к экватору)
+                tangent_dir = np.array([
+                    -radial_dir[2],  # Компонента X
+                    0,               # Компонента Y (горизонтальное движение)
+                    radial_dir[0]     # Компонента Z
+                ])
+                
+                # Нормализация
+                tangent_norm = np.linalg.norm(tangent_dir)
+                if tangent_norm > 1e-6:
+                    tangent_dir /= tangent_norm
+                    force_drive = drive_force_magnitude * tangent_dir
+                else:
+                    # На полюсах - особый случай
+                    force_drive = np.array([drive_force_magnitude, 0, 0])
+            else:
+                force_drive = np.zeros(3)
             # ----------------------------------------------------
-
             # If not in contact, only gravity acts (plus air resistance if added later)
             force_net = force_gravity + force_drive if contact else force_gravity
+            # Учет центробежной силы
+            if contact:
+                speed_sq = np.dot(vel, vel)
+                radial_dir = pos / (np.linalg.norm(pos) + 1e-9)
+                F_centrifugal = mass * speed_sq / self.radius
+                F_gravity_normal = mass * self.g * abs(radial_dir[1])  # Учитываем только вертикальную компоненту
+                
+                # Условие отрыва с запасом 5%
+                if F_centrifugal >= F_gravity_normal * 1.05:
+                    contact = False
+                    print(f"Отрыв при v={np.sqrt(speed_sq):.2f} м/с (требуется {np.sqrt(self.g * self.radius * abs(radial_dir[1])):.2f} м/с)")
 
             # 2. Calculate Acceleration
             acc = force_net / mass
@@ -115,6 +124,15 @@ class PhysicsModel:
             # 3. Integrate (Semi-implicit Euler)
             vel = vel + acc * dt
             pos = pos + vel * dt
+
+
+            # Жесткая коррекция радиуса (добавьте этот блок)
+            dist = np.linalg.norm(pos)
+            if dist > 1e-6:
+                pos = pos * (self.radius / dist)
+                # Коррекция скорости (делаем строго касательной)
+                radial_vel = np.dot(vel, pos/dist)
+                vel = vel - radial_vel * (pos/dist)
 
             # 4. Constraint Check and Handling
             dist_sq_new = np.dot(pos, pos)
@@ -186,6 +204,10 @@ class PhysicsModel:
 
             # Store the validated/corrected state for this step
             trajectory_points.append(tuple(pos))
+
+            if hasattr(self, 'visualization'):
+                self.visualization.set_force_direction(force_drive)
+
             velocity_points.append(tuple(vel))
 
         print(f"Dynamic calculation finished. Generated {len(trajectory_points)} points.")
