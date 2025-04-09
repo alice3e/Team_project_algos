@@ -83,6 +83,7 @@ class PhysicsModel:
 
             # --- Apply Drive Force ONLY if contact is true ---
             if contact and drive_force_magnitude > 0:
+
                 radial_dir = pos / (np.linalg.norm(pos) + 1e-9)
                 
                 # Направление "вперед" для мотоциклиста (касательное к экватору)
@@ -116,12 +117,14 @@ class PhysicsModel:
                 if F_centrifugal >= F_gravity_normal * 1.05:
                     contact = False
                     print(f"Отрыв при v={np.sqrt(speed_sq):.2f} м/с (требуется {np.sqrt(self.g * self.radius * abs(radial_dir[1])):.2f} м/с)")
+
             # 2. Calculate Acceleration
             acc = force_net / mass
 
             # 3. Integrate (Semi-implicit Euler)
             vel = vel + acc * dt
             pos = pos + vel * dt
+
 
             # Жесткая коррекция радиуса (добавьте этот блок)
             dist = np.linalg.norm(pos)
@@ -130,6 +133,7 @@ class PhysicsModel:
                 # Коррекция скорости (делаем строго касательной)
                 radial_vel = np.dot(vel, pos/dist)
                 vel = vel - radial_vel * (pos/dist)
+
             # 4. Constraint Check and Handling
             dist_sq_new = np.dot(pos, pos)
             radius_sq = self.radius**2
@@ -200,8 +204,10 @@ class PhysicsModel:
 
             # Store the validated/corrected state for this step
             trajectory_points.append(tuple(pos))
+
             if hasattr(self, 'visualization'):
                 self.visualization.set_force_direction(force_drive)
+
             velocity_points.append(tuple(vel))
 
         print(f"Dynamic calculation finished. Generated {len(trajectory_points)} points.")
