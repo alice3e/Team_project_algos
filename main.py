@@ -16,7 +16,7 @@ class AlgorithmWindow(QMainWindow):
 
         self.physics_model = None
         self.trajectory = []
-        self.velocities = []  # Будем хранить скорости для отображения
+
 
         # --- Интерфейс ---
         main_widget = QWidget()
