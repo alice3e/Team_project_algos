@@ -46,7 +46,7 @@ class AlgorithmWindow(QMainWindow):
         params_layout = QFormLayout()
         self.radius_input = QLineEdit("4.0")
         params_layout.addRow(QLabel("Радиус сферы (м):"), self.radius_input)
-        self.mass_input = QLineEdit("1.0")
+        self.mass_input = QLineEdit("100.0")
         params_layout.addRow(QLabel("Масса точки (кг):"), self.mass_input)
         self.drive_force_input = QLineEdit("15.0")
         params_layout.addRow(QLabel("Сила тяги (Н):"), self.drive_force_input)
