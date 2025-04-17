@@ -147,16 +147,16 @@ $$\mathbf{N} = m\frac{v^2}{R} + m g \cos\phi$$
 $$|\mathbf{F}{\text{fr}}| \le \mu N$$
 Критическая скорость:
 $$v_{\text{min}} = \sqrt{\frac{gR}{\mu}}$$
-Метод решения:
+
 Метод Эйлера / Рунге-Кутты
-Численное интегрирование координат и скоростей
+
 
 ---
 
 <!-- _class: bg-split -->
 <div class="image-pane" style="--bg-split-width: 40%;">
   <!-- Изображение слева. CSS по умолчанию (object-fit: cover) заполнит панель -->
-  <video width="900" controls>
+  <video width="500" controls>
     <source src="motorcycle_images/1_720p.mov" type="video/mp4">
   </video>
 </div>
