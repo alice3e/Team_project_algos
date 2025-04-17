@@ -132,6 +132,7 @@ class SphereWidget(QOpenGLWidget):
         # --- Отрисовка траектории и точки ---
         if self.trajectory:
             glColor4f(1.0, 0.0, 0.0, 1.0)  # Траектория – ярко-красная
+            glLineWidth(5.0)
             glBegin(GL_LINE_STRIP)
             for point in self.trajectory[:self.current_frame+1]:
                 glVertex3f(*point)
