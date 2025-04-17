@@ -477,7 +477,7 @@ section.bg-split {
     justify-content: center;
     align-items: center;
     overflow: hidden; /* Обрезаем изображение, если оно больше панели */
-    background-color: var(--spbu-light-gray); /* Фон на случай, если картинка не заполнит всё */
+    background-color: var(--spbu-bg-light); /* Фон на случай, если картинка не заполнит всё */
 
     /* --- Стилизация самого IMG тега, вставленного через Markdown --- */
     & img {
