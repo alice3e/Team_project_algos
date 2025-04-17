@@ -1,0 +1,7 @@
+{
+    "markdown.marp.themes": [
+        "presentation/themes/spbu.css",
+        "presentation/themes/beam.css",
+    ],
+    "markdown.marp.exportType": "html" // pptx, pdf, html, png, jpeg
+} 

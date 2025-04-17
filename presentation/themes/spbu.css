@@ -1,0 +1,616 @@
+/* @theme spbu */
+/*
+ * Базовая тема для Marp презентаций в стиле СПбГУ.
+ * Основана на предоставленных шаблонах и требованиях.
+ * Версия: 1.1 (После рефакторинга)
+ */
+
+@charset "UTF-8"; /* Рекомендуется указывать кодировку */
+
+/* --- ИМПОРТЫ --- */
+@import 'default'; /* Базовые стили Marp по умолчанию */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap'); /* Основной шрифт Open Sans */
+
+/* --- CSS ПЕРЕМЕННЫЕ (КОНСТАНТЫ ТЕМЫ) --- */
+:root {
+  /* -- Цветовая палитра -- */
+  --spbu-red: #9F2D20;         /* Основной красный (Pantone 484C) */
+  --spbu-gray: #A8ADB4;        /* Серый (Pantone 429C) */
+  --spbu-light-gray: #f0f0f0;   /* Очень светлый серый (для фонов плашек, кода) */
+  --spbu-text-dark: #333333;    /* Основной темный цвет текста (был #523838, сделал темнее для контраста) */
+  --spbu-text-light: #ffffff;   /* Белый текст (для темных фонов) */
+  --spbu-bg-light: #ffffff;     /* Основной фон слайда (белый) */
+  --spbu-bg-beige: #f4f4ed;    /* Бежевый фон (для слайда контактов) */
+
+  /* -- Шрифты -- */
+  /* Запасные шрифты: Segoe UI (Windows), system-ui (Современные ОС), sans-serif (Общий) */
+  --spbu-font-family: "Open Sans", "Segoe UI", system-ui, sans-serif;
+
+  /* -- Базовый размер шрифта -- */
+  /*
+  * Устанавливаем базовый размер шрифта для слайда.
+  * Это соответствует примерно 20pt в оригинальном шаблоне.
+  * Другие размеры (заголовки, подписи) задаются относительно этой базы с помощью 'em'.
+  * Примерное соответствие (может немного отличаться в браузерах):
+  * 60pt ≈ 3em | 32pt ≈ 1.6em | 24pt ≈ 1.2em | 20pt = 1em | 16pt ≈ 0.8em
+  */
+  font-size: 27px; /* Базовый размер (1em) */
+}
+
+/* === ОБЩИЕ СТИЛИ ДЛЯ ВСЕХ СЛАЙДОВ (SECTION) === */
+section {
+  /* -- Шрифты и текст -- */
+  font-family: var(--spbu-font-family);
+  color: var(--spbu-text-dark);
+  line-height: 1.4; /* Межстрочный интервал */
+
+  /* -- Фон и отступы -- */
+  background-color: var(--spbu-bg-light);
+  padding: 40px 60px 60px 60px; /* Внутренние отступы: Сверху | Справа | Снизу | Слева */
+
+  /* -- Позиционирование для дочерних/псевдоэлементов -- */
+  position: relative; /* Необходимо для absolute позиционирования ::before и ::after */
+  overflow: hidden; /* По умолчанию обрезаем все, что выходит за рамки слайда */
+                    /* Если нужно, чтобы ::before/::after вылезали, используйте overflow: visible !important; */
+
+  /* -- Настройки фоновых изображений по умолчанию -- */
+  background-repeat: no-repeat; /* Не повторять фоновые изображения */
+
+  /* --- Фоновый водяной знак (правая часть слайда) --- */
+  &::before {
+    content: '';
+    position: absolute;
+    transform: rotate(-90deg);
+    width: 800px;  /* Ширина контейнера для фона */
+    height: 800px; /* Высота контейнера для фона */
+    top: 0;        /* Выравнивание по верху */
+    bottom: 0;     /* Растянуть по высоте (вместе с top:0) */
+    left: 62%;     /* Начало примерно на 62% ширины слайда */
+    right: -150px; /* Позволяет немного выйти за правый край, если нужно */
+                  /* Замените left/right для точного позиционирования */
+
+    /* Путь к изображению водяного знака */
+    /* !!! ВАЖНО: Укажите правильный путь ОТНОСИТЕЛЬНО ЭТОГО CSS ФАЙЛА !!! */
+    /* Пример: Если CSS в папке 'themes', а img в корне, путь будет '../img/bg.png' */
+    background-image: url('img/bg.png'); /* <-- ЗАМЕНИТЕ ПУТЬ! */
+    background-size: contain; /* Вписать изображение в контейнер 800x800, сохраняя пропорции */
+    background-position: center right; /* Позиционировать внутри контейнера */
+    background-repeat: no-repeat;
+
+    opacity: 0.15; /* Прозрачность водяного знака (было 0.2) */
+    z-index: 0;    /* Разместить под основным контентом слайда */
+
+    /* Поворот был добавлен ранее - уберите, если он не нужен */
+    /* transform: rotate(-90deg); */ /* <-- Раскомментируйте, если нужен поворот */
+  }
+
+  /* --- Логотип (например, "300 лет") в правом верхнем углу --- */
+  /* Применяется ко всем слайдам, кроме тех, где явно скрыт (см. ниже) */
+  &::after {
+    content: '';
+    position: absolute;
+    width: 450px; /* Ширина логотипа (было 400px, вероятно, слишком много) - настройте! */
+    height: 250px; /* Высота логотипа (было 200px) - настройте пропорционально! */
+    top: -35px;    /* Отступ сверху (было -20px) - настройте! */
+    right: 0px;   /* Базовый отступ справа (был 0px + transform) - настройте! */
+
+    /* Путь к изображению логотипа */
+    /* !!! ВАЖНО: Укажите правильный путь ОТНОСИТЕЛЬНО ЭТОГО CSS ФАЙЛА !!! */
+    background-image: url('img/emblem_grey.png'); /* <-- ЗАМЕНИТЕ ПУТЬ! */
+    background-size: contain; /* Вписать логотип в контейнер width x height */
+    background-repeat: no-repeat;
+    background-position: center right; /* Выровнять внутри контейнера */
+
+    z-index: 1; /* Расположить поверх ::before, но под возможными модальными окнами */
+
+    /* Сдвиг вправо был добавлен ранее */
+    /* Он сдвигает элемент ОТНОСИТЕЛЬНО его позиции 'right: 50px' */
+    transform: translateX(150px);  /* <-- Раскомментируйте/измените, если логотип нужно сильно сдвинуть вправо за пределы слайда (требует overflow:visible у section) */
+  }
+}
+
+/* === СТИЛИ ТЕКСТОВЫХ ЭЛЕМЕНТОВ === */
+
+/* --- Заголовки (h1-h6) --- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--spbu-font-family);
+  font-weight: 700; /* Жирное начертание */
+  color: var(--spbu-text-dark); /* Цвет по умолчанию (для h1 переопределен ниже) */
+  margin-top: 0; /* Убираем верхний отступ по умолчанию */
+  margin-bottom: 0.7em; /* Нижний отступ */
+  line-height: 1.2; /* Межстрочный интервал для заголовков */
+}
+
+h1 {
+  font-size: 1.6em;   /* ~32pt */
+  color: var(--spbu-red); /* Красный цвет для основного заголовка слайда */
+}
+
+h2 {
+  font-size: 1.3em;   /* ~24pt */
+}
+
+h3 {
+  font-size: 1.1em;   /* ~21pt */
+}
+
+/* h4, h5, h6 наследуют стили, можно добавить специфичные размеры, если нужно */
+
+/* --- Параграфы и элементы списков --- */
+p, li {
+  margin-top: 0;
+  margin-bottom: 0.6em; /* Немного увеличил отступ для читаемости */
+}
+
+li {
+  margin-left: 0.5em; /* Дополнительный отступ для элементов списка */
+}
+
+/* --- Ссылки --- */
+a {
+  color: var(--spbu-red);
+  text-decoration: none; /* Убрать подчеркивание по умолчанию */
+}
+a:hover {
+  text-decoration: underline; /* Добавить подчеркивание при наведении */
+}
+
+/* --- Списки --- */
+ul {
+  list-style-type: disc; /* Маркеры-кружки */
+  padding-left: 1.5em; /* Отступ слева для списка */
+}
+ol {
+  list-style-type: decimal; /* Нумерация */
+  padding-left: 1.5em; /* Отступ слева для списка */
+}
+
+/* --- Блоки кода --- */
+/* Инлайновый код */
+code {
+  background-color: var(--spbu-light-gray);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em; /* Немного меньше основного текста */
+  font-family: monospace; /* Моноширинный шрифт */
+}
+/* Блок кода */
+pre {
+  background-color: var(--spbu-light-gray);
+  padding: 1em;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  font-size: 0.9em;
+  line-height: 1.3;
+  overflow-x: auto; /* Добавить горизонтальную прокрутку, если код не влезает */
+}
+pre code { /* Убрать стили инлайнового кода внутри блока pre */
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  font-size: inherit; /* Наследовать размер от pre */
+}
+
+/* --- Цитаты (blockquote) --- */
+/* Можно использовать для выделения текста или как альтернативу плашкам */
+blockquote {
+  background-color: var(--spbu-light-gray);
+  border-left: 5px solid var(--spbu-gray); /* Серая линия слева */
+  padding: 1em 1.5em;
+  margin: 1em 0;
+}
+blockquote p {
+  margin-bottom: 0; /* Убрать нижний отступ у последнего параграфа внутри цитаты */
+  /* font-style: italic; */ /* Раскомментируйте, если нужен курсив для цитат */
+}
+
+/* === MARP СПЕЦИФИЧНЫЕ ЭЛЕМЕНТЫ === */
+
+/* --- Нумерация страниц --- */
+/* Стилизация стандартного номера страницы Marp (включается через paginate: true в YAML) */
+section[data-marpit-pagination]::after {
+  /* Этот селектор имеет более высокий приоритет, чем section::after */
+  /* Он добавит номер страницы, если он не скрыт другими правилами */
+  content: attr(data-marpit-pagination); /* Отобразить номер страницы */
+  position: absolute;
+  bottom: 25px; /* Положение снизу */
+  right: 60px;  /* Положение справа */
+  font-size: 0.7em; /* Размер */
+  color: var(--spbu-gray); /* Цвет */
+  z-index: 3; /* Поверх логотипа, если они пересекаются */
+}
+
+/* --- Управление видимостью логотипа и номера страницы --- */
+/* 1. Скрываем базовый логотип (section::after) по умолчанию, */
+/*    так как paginate:true добавит свой section[data-marpit-pagination]::after */
+section::after {
+    display: none;
+}
+/* 2. Показываем логотип (section::after) только если НЕТ нумерации страниц */
+/*    (т.е. не задан атрибут data-marpit-pagination) */
+section:not([data-marpit-pagination])::after {
+  display: block; /* Показываем логотип, если нет пагинации */
+}
+
+/* 3. Принудительно скрываем и логотип, и номер страницы на специальных слайдах */
+section.title::after,                     /* На титульном */
+section.title[data-marpit-pagination]::after, /* На титульном (даже если есть пагинация) */
+section.section-break::after,             /* На разделителе */
+section.section-break[data-marpit-pagination]::after,
+section.contacts::after,                  /* На контактах */
+section.contacts[data-marpit-pagination]::after {
+  display: none !important; /* !important нужен для переопределения section[data-marpit-pagination]::after */
+}
+
+
+/* === СПЕЦИАЛЬНЫЕ КЛАССЫ ДЛЯ СЛАЙДОВ === */
+/* Используются через директиву в Markdown: <!-- _class: имя_класса --> */
+/* --- Титульный слайд --- */
+/* Использование: <!-- _class: title --> */
+section.title {
+  /* background-color: var(--spbu-red); */ /* Фоновый цвет секции будет ВИДЕН ПОД полупрозрачным изображением */
+  /* Вы можете оставить красный, сделать его темнее или убрать (transparent), если не нужно */
+  background-color: var(--spbu-red); /* Пример: Очень темный красно-коричневый для подложки */
+  color: var(--spbu-text-light); /* Светлый текст */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Центрировать блок текста по вертикали */
+  align-items: center; /* Центрировать блок текста по горизонтали */
+  text-align: center; /* Выравнивание текста по центру */
+  position: relative; /* !!! ВАЖНО: Установить контекст позиционирования для дочерних absolute */
+  overflow: hidden; /* Обрезать изображение, если оно выйдет за пределы */
+
+  /* Стили для текста остаются без изменений */
+  h1 {
+    color: var(--spbu-text-light);
+    border-bottom: none;
+    font-size: 3.5em;
+    margin-bottom: 0.3em;
+    position: relative; /* Ставим текст выше фона */
+    z-index: 3;
+  }
+  h2 {
+    color: var(--spbu-text-light);
+    border-bottom: none;
+    font-size: 1.5em;
+    margin-bottom: 0.3em;
+    position: relative; /* Ставим текст выше фона */
+    z-index: 3;
+  }
+  p {
+    font-size: 1.0em;
+    opacity: 0.9;
+    position: sticky; /* Ставим текст выше фона */
+    top: 1100px;
+    z-index: 3;
+  }
+
+
+}
+
+/* --- Слайд-разделитель --- */
+/* Использование: <!-- _class: section-break --> */
+/* Использование с другим цветом: <!-- _class: section-break gray --> */
+section.section-break {
+  background-color: var(--spbu-red); /* По умолчанию красный фон */
+  color: var(--spbu-text-light); /* Светлый текст */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Центрировать контент по вертикали */
+  align-items: center; /* Центрировать контент по горизонтали */
+  text-align: center; /* Выравнивание текста по центру */
+
+  h1, h2 {
+    color: var(--spbu-text-light); /* Белый цвет для заголовков */
+    border-bottom: none; /* Без подчеркивания */
+    font-size: 2.5em; /* Очень крупный текст (~45pt) */
+    margin-bottom: 0.3em; /* Меньший отступ снизу */
+  }
+  p { /* Подпись под заголовком */
+    font-size: 1.1em; /* Крупнее базового */
+    opacity: 0.9; /* Немного прозрачнее */
+  }
+
+  /* -- Вариант с серым фоном -- */
+  &.gray {
+    background-color: var(--spbu-gray);
+    color: var(--spbu-text-dark);
+    h1, h2, p {
+      color: var(--spbu-text-dark); /* Темный текст на сером фоне */
+    }
+  }
+  /* Можно добавить другие цветовые варианты по аналогии (.blue, .green, etc.) */
+}
+
+/* --- Слайд с фоновым изображением и текстом поверх --- */
+/* Использование: */
+/* --- */
+/* <!-- _backgroundImage: url('../img/your-background.jpg') --> */
+/* <!-- _class: image-text --> */
+/* # Заголовок поверх фото */
+/* Текст поверх фото... */
+/* --- */
+section.image-text {
+  color: var(--spbu-text-light); /* Белый текст по умолчанию */
+  /* Тень для лучшей читаемости текста на фото */
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+
+  h1, h2 {
+    color: var(--spbu-text-light);
+    border-bottom: none;
+  }
+
+  /* Опционально: скрыть логотип/номер на таких слайдах */
+  &::after, &[data-marpit-pagination]::after { display: none !important; }
+}
+
+/* --- Компонент "Плашка" (цветной блок) --- */
+/* Использование (требует HTML в Markdown): */
+/* <div class="plashka red"> Текст внутри красной плашки. </div> */
+/* <div class="plashka"> Текст внутри стандартной серой плашки. </div> */
+.plashka {
+  background-color: var(--spbu-light-gray); /* Стандартный фон */
+  color: var(--spbu-text-dark); /* Стандартный цвет текста */
+  padding: 1em 1.5em;
+  margin: 1em 0;
+  border-radius: 4px;
+
+  /* -- Модификатор для красной плашки -- */
+  &.red {
+    background-color: var(--spbu-red);
+    color: var(--spbu-text-light);
+    /* Убедимся, что все внутри тоже белое */
+    p, li, h1, h2, h3, h4, h5, h6, strong, a {
+      color: var(--spbu-text-light);
+    }
+  }
+  /* Можно добавить другие цвета по аналогии (.gray, .blue ...) */
+}
+/* --- Компонент "Инфографика" (число + текст) --- */
+/* Использование (требует HTML): */
+/* <div class="infographic-item"> */
+/*   <strong>>8000</strong> */
+/*   <span>Текст описания</span> */
+/* </div> */
+.infographic-item {
+  display: flex; /* Расположить число и текст в строку */
+  align-items: baseline; /* Выровнять по базовой линии текста */
+  margin-bottom: 0.8em;
+
+  /* Стиль для числа */
+  & > strong {
+    font-size: 1.8em; /* Крупнее */
+    color: var(--spbu-red); /* Красный цвет */
+    margin-right: 0.5em; /* Отступ справа */
+    min-width: 100px; /* Минимальная ширина для выравнивания чисел */
+    display: inline-block;
+    font-weight: 700; /* Жирный */
+  }
+  /* Стиль для текста описания */
+  & > span {
+    font-size: 1em; /* Базовый размер */
+  }
+}
+
+/* --- Слайд "Текст слева / Изображение справа (Markdown Image)" --- */
+/* Использование: см. пример в MD файле */
+section.split-left-text {
+  padding: 0; /* Убираем стандартный паддинг секции */
+  display: grid;
+  grid-template-columns: 1.5fr 1fr; 
+  /* grid-template-columns: 60% 40%; */ /* Альтернатива */
+  gap: 40px; /* Добавим промежуток между текстом и картинкой */
+  align-items: start; /* Выравниваем начало колонок по верху */
+  height: 100%;
+
+  /* --- Левая колонка (Текст) --- */
+  & > .text-area {
+    padding: 30px 0px 30px 30px; /* Отступы: Верх | Право=0 | Низ | Лево */
+                                 /* Правый отступ не нужен, т.к. есть gap */
+    height: 100%;
+    overflow: auto;
+  }
+
+  /* --- Правая колонка (Контейнер для Markdown Изображения) --- */
+  & > .image-area {
+    padding: 30px 30px 30px 0px; /* Отступы: Верх | Право | Низ | Лево=0 */
+                                 /* Левый отступ не нужен, т.к. есть gap */
+    height: 100%;
+    display: flex; /* Используем Flexbox для центрирования картинки внутри */
+    flex-direction: column; /* На случай, если будет подпись под картинкой */
+    justify-content: center; /* Центрировать по вертикали */
+    align-items: center; /* Центрировать по горизонтали */
+    overflow: hidden; /* Обрезать картинку, если она больше контейнера */
+    z-index: 2;
+    /* --- Стилизация самого IMG тега, вставленного через Markdown --- */
+    & img { /* Применяем стили к любому img внутри .image-area */
+      display: block; /* Убираем лишние отступы под картинкой */
+      max-width: 100%; /* Картинка не будет шире колонки */
+      max-height: 100%; /* Картинка не будет выше колонки */
+      z-index: 2;
+      object-fit: contain; /* Масштабировать картинку, чтобы она влезла целиком */
+                           /* (аналог background-size: contain) */
+      /* object-fit: cover; */ /* Альтернатива: заполнить, обрезав края */
+                               /* (аналог background-size: cover) */
+
+      /* Стили Marp (width, height, filter и т.д. из ![...]) будут */
+      /* применены к img и могут переопределить max-width/max-height, */
+      /* если заданы абсолютные значения (px, cm). */
+    }
+  }
+
+  /* --- Скрываем стандартный логотип и водяной знак --- */
+  /* &::before,
+  &::after,
+  &[data-marpit-pagination]::after {
+      display: none !important;
+  } */
+}
+
+/* --- Слайд "Изображение слева / Контент справа" (Markdown Image) --- */
+/* Использование (требует HTML и Markdown Image): */
+/* --- */
+/* <!-- _class: bg-split --> */
+/* <div class="image-pane" style="--bg-split-width: 40%;"> */
+/*    ![width:100%](path/to/image.jpg) */
+/* </div> */
+/* <div class="content-pane"> */
+/*    # Заголовок */
+/*    Ваш контент здесь... */
+/* </div> */
+/* --- */
+section.bg-split {
+  padding: 0; /* Убираем стандартный паддинг секции */
+  display: grid;
+  /* Колонки: Ширина первой (image-pane) из переменной, вторая - остальное */
+  grid-template-columns: var(--bg-split-width, 40%) 1fr;
+  height: 100%;
+  gap: 0; /* Без зазора между колонками */
+  align-items: stretch; /* Растянуть по высоте */
+
+  /* --- Левая панель (Контейнер для Markdown Изображения) --- */
+  /* Переименовали в image-pane для ясности */
+  & > .image-pane {
+    height: 100%;
+    display: flex; /* Используем Flexbox для позиционирования img */
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* Обрезаем изображение, если оно больше панели */
+    background-color: var(--spbu-light-gray); /* Фон на случай, если картинка не заполнит всё */
+
+    /* --- Стилизация самого IMG тега, вставленного через Markdown --- */
+    & img {
+      display: block;
+      width: 100%; /* По умолчанию пытаемся растянуть img на всю ширину панели */
+      height: 100%; /* По умолчанию пытаемся растянуть img на всю высоту панели */
+      object-fit: cover; /* Масштабировать картинку, чтобы она ПОКРЫЛА панель */
+                         /* (обрезая края, если пропорции не совпадают) */
+                         /* Это поведение наиболее близко к background-size: cover */
+      /* object-fit: contain; */ /* Альтернатива: вписать картинку целиком */
+    }
+    /* ПРИМЕЧАНИЕ: Marp-синтаксис ![width:...] или ![height:...] переопределит */
+    /*             значения width/height выше, но object-fit все равно будет влиять */
+    /*             на то, как картинка масштабируется ВНУТРИ заданных размеров. */
+  }
+
+  /* --- Правая панель (Контент) --- */
+  & > .content-pane {
+    height: 100%;
+    padding: 40px 60px 60px 40px; /* Отступы ВНУТРИ контентной части */
+    overflow: auto;
+    background-color: var(--spbu-bg-light);
+  }
+
+  /* --- Скрываем стандартный логотип и водяной знак --- */
+  /* &::before,
+  &::after,
+  &[data-marpit-pagination]::after {
+      display: none !important;
+  } */
+}
+
+/* --- Модификатор: Изображение СПРАВА / Контент СЛЕВА --- */
+/* Использование: <!-- _class: bg-split right --> */
+section.bg-split.right {
+  /* Меняем порядок колонок: Контент (1fr), потом Изображение */
+  grid-template-columns: 1fr var(--bg-split-width, 40%);
+
+  /* Панель контента теперь слева */
+  & > .content-pane {
+    grid-column: 1;
+    padding: 40px 40px 60px 60px;
+  }
+
+  /* Панель изображения теперь справа */
+  & > .image-pane {
+    grid-column: 2;
+  }
+}
+
+/* --- Слайд "Контакты" --- */
+/* Использование: <!-- _class: contacts --> */
+section.contacts {
+  padding: 0; /* Убрать стандартные отступы секции */
+  background-color: var(--spbu-bg-beige); /* Бежевый фон */
+  color: var(--spbu-text-dark);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+
+  /* --- Шапка (аналогично титульному) --- */
+  & > header {
+    height: 25vh;
+    flex-shrink: 0;
+    background-color: var(--spbu-red); /* Заглушка цвета, если нет фона */
+    /* !!! Укажите путь к фону шапки, если он нужен !!! */
+    /* background-image: url('../img/header.png'); */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    /* display: flex; align-items: center; padding-left: 5%; */
+  }
+
+  /* --- Основной контент (с колонками) --- */
+  & > div.content {
+    padding: 5% 8%;
+    flex-grow: 1;
+    display: grid; /* Используем Grid для разметки */
+    grid-template-columns: 1fr 1fr; /* Две равные колонки */
+    gap: 2em 4em; /* Расстояние между строками и колонками */
+    align-content: start; /* Выравнивание контента по верху сетки */
+  }
+
+  /* --- Заголовок "Контакты" --- */
+  h1 {
+    grid-column: 1 / -1; /* Растянуть заголовок на обе колонки */
+    margin-bottom: 1em;
+    color: var(--spbu-red); /* Заголовок красный */
+    font-size: 1.8em; /* Крупнее */
+    border-bottom: none;
+  }
+
+  /* --- Текст контактов --- */
+  p {
+    margin-bottom: 0.5em;
+    line-height: 1.5;
+    strong { /* Выделение spbu.ru */
+      font-weight: 700;
+    }
+  }
+
+  /* --- Подвал (с spbu.ru) --- */
+  & > footer {
+    height: 10vh;
+    flex-shrink: 0;
+    background-color: var(--spbu-red); /* Заглушка цвета, если нет фона */
+    /* !!! Укажите путь к фону подвала, если он нужен !!! */
+    background-image: url('../img/bg.png'); 
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    display: flex;
+    justify-content: flex-end; /* Выровнять spbu.ru по правому краю */
+    align-items: center;
+    padding-right: 8%; /* Отступ справа */
+
+    font-size: 1.2em;
+    color: var(--spbu-text-light);
+    font-weight: 700;
+  }
+}
+
+/* --- Вспомогательные классы --- */
+
+/* --- Колонки (Простой вариант через Flexbox) --- */
+/* Использование (требует HTML): */
+/* <div class="columns"> <div>Колонка 1</div> <div>Колонка 2</div> </div> */
+.columns {
+  display: flex;
+  gap: 2em; /* Расстояние между колонками */
+  & > div {
+    flex: 1; /* Колонки занимают равное пространство */
+  }
+}
