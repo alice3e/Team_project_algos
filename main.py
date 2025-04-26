@@ -1,4 +1,3 @@
-# --- START OF FILE main.py ---
 import sys
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                             QPushButton, QFormLayout, QLineEdit, QLabel,
@@ -12,36 +11,29 @@ class AlgorithmWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Sphere Motion Simulator (Dynamic Model)")
-        # self.setMinimumSize(1000, 850)  # Увеличим немного высоту для инфо-панели
 
         self.physics_model = None
         self.trajectory = []
 
 
-        # --- Интерфейс ---
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
-        # Используем главный QHBoxLayout для разделения на левую (визуализация) и правую (параметры + инфо) части
         main_layout = QHBoxLayout(main_widget)
 
-        # Левая часть: Визуализация
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         self.visualization = SphereWidget()
         left_layout.addWidget(self.visualization, stretch=1)
-        # Таймлайн под визуализацией
         self.timeline = QSlider(Qt.Horizontal)
         self.timeline.setRange(0, 100)
         self.timeline.setValue(0)
         self.timeline.valueChanged.connect(self.update_frame)
         left_layout.addWidget(self.timeline)
-        main_layout.addWidget(left_widget, stretch=3)  # Визуализация занимает больше места
+        main_layout.addWidget(left_widget, stretch=3)
 
-        # Правая часть: Параметры и Информация
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
 
-        # Панель параметров
         params_group = QGroupBox("Параметры симуляции")
         params_layout = QFormLayout()
         self.radius_input = QLineEdit("4.0")
@@ -55,10 +47,8 @@ class AlgorithmWindow(QMainWindow):
         params_group.setLayout(params_layout)
         right_layout.addWidget(params_group)
 
-        # Панель начальных условий
         initial_conditions_group = QGroupBox("Начальные условия")
         initial_conditions_layout = QFormLayout()
-        # Позиция
         init_pos_group = QGroupBox("Позиция (x, y, z)")
         init_pos_layout = QHBoxLayout()
         self.initial_pos_x_input = QLineEdit("0.1")
@@ -72,7 +62,6 @@ class AlgorithmWindow(QMainWindow):
         init_pos_layout.addWidget(self.initial_pos_z_input)
         init_pos_group.setLayout(init_pos_layout)
         initial_conditions_layout.addRow(init_pos_group)
-        # Скорость
         init_vel_group = QGroupBox("Скорость (vx, vy, vz)")
         init_vel_layout = QHBoxLayout()
         self.initial_vel_x_input = QLineEdit("0.0")
@@ -89,7 +78,6 @@ class AlgorithmWindow(QMainWindow):
         initial_conditions_group.setLayout(initial_conditions_layout)
         right_layout.addWidget(initial_conditions_group)
 
-        # Панель информации о текущем кадре (НОВОЕ)
         info_group = QGroupBox("Информация о точке (текущий кадр)")
         info_layout = QFormLayout()
         self.info_time_label = QLabel("Время: -")
@@ -105,37 +93,45 @@ class AlgorithmWindow(QMainWindow):
         info_group.setLayout(info_layout)
         right_layout.addWidget(info_group)
 
-        # Кнопка расчета
         self.calculate_btn = QPushButton("Рассчитать траекторию")
         self.calculate_btn.clicked.connect(self.calculate)
         right_layout.addWidget(self.calculate_btn)
 
-        right_layout.addStretch(1)  # Добавляем растяжитель, чтобы панели были сверху
+        right_layout.addStretch(1)
         right_widget.setLayout(right_layout)
-        main_layout.addWidget(right_widget, stretch=1)  # Правая колонка
+        main_layout.addWidget(right_widget, stretch=1)
 
-        # Сигналы
         self.radius_input.textChanged.connect(self.update_default_y)
         self.update_default_y(self.radius_input.text())
 
     def update_default_y(self, radius_text):
-        # ... (код без изменений) ...
         try:
             radius = float(radius_text)
             if radius > 0:
                 default_y = -radius + 0.05
                 current_y_text = self.initial_pos_y_input.text()
                 try:
-                    is_old_default = abs(float(current_y_text) - (-self.visualization.sphere_radius + 0.05)) < 1e-3
+                    # Check if the current value is likely the old default based on the *current* sphere radius in visualization
+                    # This check is complex and might not be perfectly accurate if visualization radius isn't set yet
+                    is_old_default = False
+                    if hasattr(self.visualization, 'sphere_radius') and self.visualization.sphere_radius is not None:
+                         is_old_default = abs(float(current_y_text) - (-self.visualization.sphere_radius + 0.05)) < 1e-3
+
+                    # If it's the old default or the field is empty, update it
                     if is_old_default or not current_y_text:
                         self.initial_pos_y_input.setText(f"{default_y:.2f}")
                 except ValueError:
+                     # Handle case where current text is not a float, update it
                     self.initial_pos_y_input.setText(f"{default_y:.2f}")
+                except AttributeError:
+                     # Handle case where visualization.sphere_radius doesn't exist yet
+                     if not current_y_text: # Only update if empty
+                         self.initial_pos_y_input.setText(f"{default_y:.2f}")
+
         except ValueError:
-            pass
+            pass # Ignore if radius_text is not a valid float
 
     def calculate(self):
-        """Запускает расчет траектории и скоростей."""
         try:
             radius = float(self.radius_input.text())
             mass = float(self.mass_input.text())
@@ -161,15 +157,12 @@ class AlgorithmWindow(QMainWindow):
             if pos_norm_sq > radius ** 2 + 1e-3:
                 raise ValueError("Начальная позиция вне сферы.")
 
-            # Критическая скорость
-            critical_speed = np.sqrt(9.81 * radius)  # g = 9.81
+            critical_speed = np.sqrt(9.81 * radius)
             self.info_critical_label.setText(f"Критическая скорость: {critical_speed:.2f} м/с")
 
-            # Запуск модели
             self.physics_model = PhysicsModel(radius)
             self.visualization.set_sphere_radius(radius)
 
-            # МОДЕЛЬ ДОЛЖНА ВОЗВРАЩАТЬ И ПОЗИЦИИ, И СКОРОСТИ
             results = self.physics_model.calculate_trajectory(
                 initial_pos, initial_vel, drive_force, sim_time, mass
             )
@@ -177,7 +170,7 @@ class AlgorithmWindow(QMainWindow):
                 print("Warning: Model did not return expected (positions, velocities) tuple.")
                 if isinstance(results, list):
                     self.trajectory = results
-                    self.velocities = []  # Скорости неизвестны
+                    self.velocities = []
                 else:
                     raise ValueError("Model returned unexpected data format.")
             else:
@@ -211,15 +204,14 @@ class AlgorithmWindow(QMainWindow):
             self.clear_info_labels()
 
     def update_frame(self, value):
-        """Обновляет кадр в визуализации и информацию о точке."""
         if self.trajectory:
             max_frame = self.timeline.maximum()
-            frame_index = max(0, min(value, max_frame))  # Безопасный индекс
+            frame_index = max(0, min(value, max_frame))
 
             self.visualization.set_current_frame(frame_index)
 
             pos = self.trajectory[frame_index]
-            time_step = 0.005  # Должно совпадать с dt в model.py! Или получать его оттуда.
+            time_step = 0.005
             current_time = frame_index * time_step
 
             self.info_time_label.setText(f"Время: {current_time:.3f} сек")
@@ -237,7 +229,6 @@ class AlgorithmWindow(QMainWindow):
             self.clear_info_labels()
 
     def clear_info_labels(self):
-        """Очищает информационные лейблы."""
         self.info_time_label.setText("Время: -")
         self.info_pos_label.setText("Позиция (x,y,z): -")
         self.info_vel_label.setText("Скорость (vx,vy,vz): -")
@@ -246,7 +237,6 @@ class AlgorithmWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    # Задаём стиль для яркого (светлого) интерфейса
     app.setStyleSheet("""
         QWidget {
             background-color: #FFFFFF;
@@ -294,4 +284,3 @@ if __name__ == "__main__":
     window = AlgorithmWindow()
     window.show()
     sys.exit(app.exec_())
-# --- END OF FILE main.py ---

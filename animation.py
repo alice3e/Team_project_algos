@@ -1,4 +1,3 @@
-# --- START OF FILE animation.py ---
 from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtGui import QVector3D, QMatrix4x4, QQuaternion
 from PyQt5.QtCore import Qt, QPoint
@@ -14,8 +13,8 @@ class SphereWidget(QOpenGLWidget):
         self.rotation_speed = 1.0
         self.trajectory = []
         self.current_frame = 0
-        self.sphere_radius = 1.0  # Начальное значение радиуса
-        self.zoom = 1.0  # Коэффициент приближения камеры
+        self.sphere_radius = 1.0
+        self.zoom = 1.0
 
     def set_force_direction(self, force_vec):
         self.force_direction = force_vec
@@ -38,7 +37,7 @@ class SphereWidget(QOpenGLWidget):
 
     def initializeGL(self):
         glEnable(GL_DEPTH_TEST)
-        glClearColor(1.0, 1.0, 1.0, 1.0)  # Белый фон для проектора
+        glClearColor(1.0, 1.0, 1.0, 1.0)
         glEnable(GL_LINE_SMOOTH)
         glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
         glEnable(GL_BLEND)
@@ -58,14 +57,12 @@ class SphereWidget(QOpenGLWidget):
         rot_matrix.rotate(self.rotation)
         glMultMatrixf(rot_matrix.data())
 
-        # --- Отрисовка Сферы ---
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-        glColor4f(0.0, 0.6, 1.0, 1.0)  # Насыщенный синий, яркий и контрастный
+        glColor4f(0.0, 0.6, 1.0, 1.0)
         glLineWidth(1.2)
 
         num_meridians = 32
         num_parallels = 32
-        # Меридианы
         for j in range(num_meridians):
             phi = j * 2 * np.pi / num_meridians
             glBegin(GL_LINE_STRIP)
@@ -78,7 +75,6 @@ class SphereWidget(QOpenGLWidget):
                 glVertex3f(x, y_anim, z_anim)
             glEnd()
 
-        # Параллели
         for i in range(1, num_parallels):
             theta = i * np.pi / num_parallels
             glBegin(GL_LINE_LOOP)
@@ -90,7 +86,6 @@ class SphereWidget(QOpenGLWidget):
                 glVertex3f(x, y_anim, z_anim)
             glEnd()
 
-        # Экватор (ярко-красный)
         glLineWidth(1.8)
         glColor4f(1.0, 0.2, 0.2, 1.0)
         glBegin(GL_LINE_LOOP)
@@ -105,13 +100,11 @@ class SphereWidget(QOpenGLWidget):
         glEnd()
         glLineWidth(1.0)
 
-        # --- Стрелка силы тяжести (вниз по Y) ---
         arrow_length_gravity = self.sphere_radius * 0.3
         glColor4f(0.0, 0.8, 0.0, 1.0)
-        start_y = self.sphere_radius  # Северный полюс Y
+        start_y = self.sphere_radius
         end_y = start_y - arrow_length_gravity
 
-        # Увеличиваем толщину стрелки до 5.0
         glLineWidth(5.0)
         glBegin(GL_LINES)
         glVertex3f(0, start_y, 0)
@@ -127,18 +120,16 @@ class SphereWidget(QOpenGLWidget):
         glVertex3f(0, end_y, 0)
         glVertex3f(head_size_gravity, end_y + head_size_gravity, 0)
         glEnd()
-        glLineWidth(1.0)  # Возвращаем стандартную толщину
+        glLineWidth(1.0)
 
-        # --- Отрисовка траектории и точки ---
         if self.trajectory:
-            glColor4f(1.0, 0.0, 0.0, 1.0)  # Траектория – ярко-красная
+            glColor4f(1.0, 0.0, 0.0, 1.0)
             glLineWidth(5.0)
             glBegin(GL_LINE_STRIP)
             for point in self.trajectory[:self.current_frame+1]:
                 glVertex3f(*point)
             glEnd()
 
-            # Текущая точка – оттенок золота
             if self.current_frame < len(self.trajectory):
                 current_pos = self.trajectory[self.current_frame]
                 glPushMatrix()
@@ -150,7 +141,6 @@ class SphereWidget(QOpenGLWidget):
                 gluDeleteQuadric(quad)
                 glPopMatrix()
 
-                # Стрелка вектора скорости – толще для лучшей видимости
                 if self.current_frame + 1 < len(self.trajectory):
                     next_pos = self.trajectory[self.current_frame + 1]
                     vel_dir = (next_pos[0] - current_pos[0],
@@ -231,5 +221,3 @@ class SphereWidget(QOpenGLWidget):
         self.zoom = max(0.1, min(self.zoom, 5.0))
         print(f"Zoom factor: {self.zoom:.2f}")
         self.update()
-
-# --- END OF FILE animation.py ---
