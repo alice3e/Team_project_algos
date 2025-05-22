@@ -2,5 +2,5 @@
     "markdown.marp.themes": [
         "presentations/themes/spbu.css",
     ],
-    "markdown.marp.exportType": "html" // pptx, pdf, html, png, jpeg
+    "markdown.marp.exportType": "pdf" // pptx, pdf, html, png, jpeg
 } 
